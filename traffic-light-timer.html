@@ -33,6 +33,7 @@
   .row-inline { display:flex; align-items:end; gap:8px; }
   .hint { font-size: 12px; color: var(--muted); }
   footer { text-align:center; color: var(--muted); font-size: 12px; padding: 16px; }
+
   /* 저장 목록 */
   .savebar { display:flex; gap:8px; align-items:end; flex-wrap: wrap; }
   .list { display:grid; gap:8px; }
@@ -50,7 +51,7 @@
 <body>
   <header>
     <h1>신호등 현재 색상 체크</h1>
-    <p class="sub">OTP 기준 시각과 <b>각 색상 지속 시간</b>을 입력하세요. (간단 모드 제거됨)</p>
+    <p class="sub">OTP 기준 시각과 <b>각 색상 지속 시간</b>을 입력하세요. (간단 모드 없음)</p>
   </header>
 
   <main>
@@ -140,6 +141,7 @@
         </div>
         <div class="row">
           <button id="btnSavePreset" class="primary">현재 값 저장</button>
+          <button id="btnClear" class="ghost" title="저장 목록을 초기 상태로 되돌립니다">저장 목록 초기화</button>
         </div>
       </div>
       <div class="hint" style="margin-top:6px">저장 항목은 로컬에만 보관됩니다. 항목을 클릭하면 즉시 적용·시작합니다.</div>
@@ -175,6 +177,7 @@
   const presetName = $("presetName");
   const btnSavePreset = $("btnSavePreset");
   const presetList = $("presetList");
+  const btnClear = $("btnClear");
 
   const LS_FORM = "trafficLightTimer.v3.form";
   const LS_PRESETS = "trafficLightTimer.v2.presets"; // 기존 키 유지
@@ -188,6 +191,7 @@
   const toLocalDatetimeLocalString=(d)=>{ const t=new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); };
   function todayAt(h,m,s=0){ const now=new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0); }
   function fmtDT(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`; }
+  const normId=(x)=> (x==null ? "" : String(x));  // ★ id 정규화 핵심
 
   // Toast
   function toast(msg, ms=1800){
@@ -199,25 +203,21 @@
   }
 
   // 날짜 문자열을 datetime-local에 안전한 형태로 정규화
-  // - 허용: "YYYY-MM-DDTHH:mm[:ss]" / "YYYY-MM-DD HH:mm[:ss]" / "HH:mm[:ss]" -> 오늘 날짜로 보정
   function normalizeRefTimeString(s){
     if(!s) return "";
     s = String(s).trim();
-    // HH:mm[:ss]만 있는 경우 -> 오늘 날짜 + 'T'
-    if(/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)){
+    if(/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)){ // HH:mm[:ss]
       const [hh,mm,ss="00"]=s.split(":");
       const d=todayAt(Number(hh), Number(mm), Number(ss));
       return toLocalDatetimeLocalString(d);
     }
-    // 공백 구분을 'T'로 바꿔주기
-    if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)){
+    if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)){ // 공백 → T
       return s.replace(" ","T");
     }
-    // 초가 빠진 경우 보정
-    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)){
+    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)){ // 초 보정
       return s + ":00";
     }
-    return s; // 이미 정규
+    return s;
   }
 
   // ---- Persist form ----
@@ -258,15 +258,23 @@
   function migratePresets(list){
     let changed = false;
     list.forEach(p=>{
+      // ★ id를 반드시 문자열로
+      if(p.id == null){ p.id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-migr"); changed = true; }
+      else if(typeof p.id !== "string"){ p.id = String(p.id); changed = true; }
+
+      // 정책: 간단 모드 제거 + 초록 30 고정 + 노랑 0
       if(p.simple){ p.simple=false; changed=true; }
       if(p.g !== 30){ p.g = 30; changed = true; }
       if(p.y == null || p.y !== 0){ p.y = 0; changed = true; }
+
+      // 빨강: 기존 r || tDur || 30
       if(p.r == null){
         if(p.tDur != null){ p.r = Number(p.tDur); changed = true; }
         else { p.r = 30; changed = true; }
       }
       if(p.tDur != null){ delete p.tDur; changed = true; }
-      // refTime 정규화 (형식 문제 대비)
+
+      // refTime 정규화
       if(typeof p.refTime === "string"){
         const n = normalizeRefTimeString(p.refTime);
         if(n !== p.refTime){ p.refTime = n; changed = true; }
@@ -302,7 +310,7 @@
     list.forEach(p=>{
       const div = document.createElement("div");
       div.className = "item";
-      div.dataset.id = p.id;
+      div.dataset.id = normId(p.id);  // ★ 문자열 보장
 
       const meta = document.createElement("div");
       meta.className = "meta";
@@ -338,7 +346,7 @@
     });
   }
 
-  // 이벤트 위임: 버튼이 동적으로 바뀌어도 항상 동작
+  // 이벤트 위임
   presetList.addEventListener("click", (e)=>{
     const btn = e.target.closest("button");
     if(!btn) return;
@@ -366,7 +374,7 @@
     if(!isFinite(y)||y<0){ toast("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
     if(!isFinite(r)||r<=0){ toast("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
     return {
-      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+      id: normId(crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
       name: (name||"") || undefined,
       simple: false,
       g, y, r,
@@ -374,7 +382,7 @@
     };
   }
   function deletePreset(id){
-    const list = loadPresets().filter(x=>x.id!==id);
+    const list = loadPresets().filter(x=>normId(x.id)!==normId(id)); // ★ 문자열 비교
     savePresets(list);
     renderPresets();
     toast("삭제됨");
@@ -382,16 +390,15 @@
   function applyPreset(id){
     try{
       const list = loadPresets();
-      const p = list.find(x=>x.id===id);
+      const p = list.find(x=>normId(x.id)===normId(id)); // ★ 문자열 비교
       if(!p){ toast("항목을 찾을 수 없습니다."); return; }
-      // refTime을 안전 포맷으로 보정
       const normalized = normalizeRefTimeString(p.refTime);
       refTime.value = normalized || refTime.value;
       gDur.value = p.g ?? "";
       yDur.value = p.y ?? "0";
       rDur.value = p.r ?? "";
       saveForm();
-      start(); // 바로 시작
+      start();
       toast("적용 완료! 측정 시작");
     }catch(err){
       console.error(err);
@@ -481,6 +488,12 @@
     refTime.value = local.toISOString().slice(0,19);
     saveForm(); stop(); result.hidden = true;
     toast("초기화 완료");
+  });
+  btnSavePreset.addEventListener("click", ()=> addPresetFromForm(presetName.value));
+  btnClear.addEventListener("click", ()=>{
+    localStorage.removeItem(LS_PRESETS);
+    renderPresets();
+    toast("저장 목록을 초기화했습니다.");
   });
 
   // ---- Init ----
