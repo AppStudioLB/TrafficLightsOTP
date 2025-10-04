@@ -33,7 +33,6 @@
   .row-inline { display:flex; align-items:end; gap:8px; }
   .hint { font-size: 12px; color: var(--muted); }
   footer { text-align:center; color: var(--muted); font-size: 12px; padding: 16px; }
-
   /* 저장 목록 */
   .savebar { display:flex; gap:8px; align-items:end; flex-wrap: wrap; }
   .list { display:grid; gap:8px; }
@@ -43,6 +42,9 @@
   .item .meta .desc { color: var(--muted); font-size:12px; }
   .pill { font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid #2b3550; background:#141a2a; color:#9fb0cf; }
   .item .actions { display:flex; gap:6px; }
+
+  /* Toast */
+  .toast { position: fixed; left:50%; bottom:24px; transform: translateX(-50%); background:#1a2336; color:#e8ecf1; border:1px solid #2b3550; padding:10px 14px; border-radius:10px; font-size:13px; box-shadow:0 8px 20px rgba(0,0,0,.35); z-index:9999; }
 </style>
 </head>
 <body>
@@ -144,9 +146,7 @@
       <div id="presetList" class="list" style="margin-top:10px"></div>
     </div>
 
-    <p class="hint">
-      ⏱ 계산은 클라이언트 시간 기준입니다. 실제 현장과 다를 수 있어요.
-    </p>
+    <p class="hint">⏱ 계산은 클라이언트 시간 기준입니다. 실제 현장과 다를 수 있어요.</p>
   </main>
 
   <footer>© Traffic Light Helper</footer>
@@ -177,25 +177,56 @@
   const presetList = $("presetList");
 
   const LS_FORM = "trafficLightTimer.v3.form";
-  const LS_PRESETS = "trafficLightTimer.v2.presets"; // 기존 키 그대로 사용해 일괄 마이그레이션
+  const LS_PRESETS = "trafficLightTimer.v2.presets"; // 기존 키 유지
 
   let timer = null;
   let conf = null;
 
-  // Utils
+  // ---- Utilities ----
   const pad=(n)=>String(n).padStart(2,"0");
-  function fmtDT(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`; }
-  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-  function toLocalDatetimeLocalString(d){ const t = new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); }
+  const clamp01=(x)=>Math.max(0,Math.min(1,x));
+  const toLocalDatetimeLocalString=(d)=>{ const t=new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); };
   function todayAt(h,m,s=0){ const now=new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0); }
+  function fmtDT(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`; }
 
-  // Persist form
+  // Toast
+  function toast(msg, ms=1800){
+    const el=document.createElement("div");
+    el.className="toast"; el.textContent=msg;
+    document.body.appendChild(el);
+    setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .25s"; }, ms);
+    setTimeout(()=>{ el.remove(); }, ms+300);
+  }
+
+  // 날짜 문자열을 datetime-local에 안전한 형태로 정규화
+  // - 허용: "YYYY-MM-DDTHH:mm[:ss]" / "YYYY-MM-DD HH:mm[:ss]" / "HH:mm[:ss]" -> 오늘 날짜로 보정
+  function normalizeRefTimeString(s){
+    if(!s) return "";
+    s = String(s).trim();
+    // HH:mm[:ss]만 있는 경우 -> 오늘 날짜 + 'T'
+    if(/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)){
+      const [hh,mm,ss="00"]=s.split(":");
+      const d=todayAt(Number(hh), Number(mm), Number(ss));
+      return toLocalDatetimeLocalString(d);
+    }
+    // 공백 구분을 'T'로 바꿔주기
+    if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)){
+      return s.replace(" ","T");
+    }
+    // 초가 빠진 경우 보정
+    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)){
+      return s + ":00";
+    }
+    return s; // 이미 정규
+  }
+
+  // ---- Persist form ----
   function loadForm(){
     try{
       const raw = localStorage.getItem(LS_FORM);
       if(!raw) return;
       const data = JSON.parse(raw);
-      if(data.refTime) refTime.value = data.refTime;
+      if(data.refTime) refTime.value = normalizeRefTimeString(data.refTime);
       if(data.refColor) refColor.value = data.refColor;
       if(data.gDur!=null) gDur.value = data.gDur;
       if(data.yDur!=null) yDur.value = data.yDur;
@@ -213,34 +244,33 @@
     localStorage.setItem(LS_FORM, JSON.stringify(data));
   }
 
-  // Presets
+  // ---- Presets (마이그레이션 포함) ----
   function ensureSeedIfEmpty(list){
     if(list.length>0) return list;
-    // 기존 ‘오후 4:10 / 2분25초’ 시드를 상세모드로 제공(초록30 / 노랑0 / 빨강145)
     return [{
-      id: crypto.randomUUID(),
+      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-seed"),
       name: "오후 4:10 / 2분25초",
       simple: false,
-      g: 30,
-      y: 0,
-      r: 145,
+      g: 30, y: 0, r: 145,
       refTime: toLocalDatetimeLocalString(todayAt(16,10,0))
     }];
   }
   function migratePresets(list){
     let changed = false;
     list.forEach(p=>{
-      // 간단모드 → 상세모드 변환 + 초록 30 고정
-      if(p.simple){ changed = true; p.simple = false; }
+      if(p.simple){ p.simple=false; changed=true; }
       if(p.g !== 30){ p.g = 30; changed = true; }
       if(p.y == null || p.y !== 0){ p.y = 0; changed = true; }
-      // 빨강은 우선순위: p.r || p.tDur || 30
       if(p.r == null){
         if(p.tDur != null){ p.r = Number(p.tDur); changed = true; }
         else { p.r = 30; changed = true; }
       }
-      // 잔여 필드 정리
       if(p.tDur != null){ delete p.tDur; changed = true; }
+      // refTime 정규화 (형식 문제 대비)
+      if(typeof p.refTime === "string"){
+        const n = normalizeRefTimeString(p.refTime);
+        if(n !== p.refTime){ p.refTime = n; changed = true; }
+      }
     });
     return { list, changed };
   }
@@ -250,11 +280,7 @@
       const raw = localStorage.getItem(LS_PRESETS);
       list = raw ? (JSON.parse(raw) || []) : [];
     }catch(e){ list = []; }
-
-    // 비었으면 시드 주입
     list = ensureSeedIfEmpty(list);
-
-    // 일괄 마이그레이션(요청사항 적용)
     const { list: migrated, changed } = migratePresets(list);
     if(changed){ savePresets(migrated); }
     return migrated;
@@ -262,6 +288,7 @@
   function savePresets(list){
     localStorage.setItem(LS_PRESETS, JSON.stringify(list));
   }
+
   function renderPresets(){
     const list = loadPresets();
     presetList.innerHTML = "";
@@ -275,19 +302,22 @@
     list.forEach(p=>{
       const div = document.createElement("div");
       div.className = "item";
+      div.dataset.id = p.id;
+
       const meta = document.createElement("div");
       meta.className = "meta";
       const title = document.createElement("div");
       title.className = "title";
       title.textContent = p.name || "(이름 없음)";
+
       const desc = document.createElement("div");
       desc.className = "desc";
-
       const dt = new Date(p.refTime);
-      const t = isNaN(dt.getTime()) ? p.refTime : `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
-      const pills = [];
-      pills.push(`G${p.g||0}s`); pills.push(`Y${p.y||0}s`); pills.push(`R${p.r||0}s`);
-      desc.innerHTML = `기준 ${t} <span class="pill">${pills.join("</span> <span class='pill'>")}</span>`;
+      const timeLabel = isNaN(dt.getTime())
+        ? p.refTime
+        : `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+      const pills = [`G${p.g||0}s`,`Y${p.y||0}s`,`R${p.r||0}s`];
+      desc.innerHTML = `기준 ${timeLabel} <span class="pill">${pills.join("</span> <span class='pill'>")}</span>`;
 
       meta.appendChild(title); meta.appendChild(desc);
 
@@ -296,17 +326,30 @@
       const applyBtn = document.createElement("button");
       applyBtn.textContent = "적용·시작";
       applyBtn.className = "primary";
-      applyBtn.addEventListener("click", ()=>applyPreset(p.id));
+      applyBtn.dataset.action = "apply";
       const delBtn = document.createElement("button");
       delBtn.textContent = "삭제";
       delBtn.className="ghost";
-      delBtn.addEventListener("click", ()=>deletePreset(p.id));
+      delBtn.dataset.action = "delete";
       actions.appendChild(applyBtn); actions.appendChild(delBtn);
 
       div.appendChild(meta); div.appendChild(actions);
       presetList.appendChild(div);
     });
   }
+
+  // 이벤트 위임: 버튼이 동적으로 바뀌어도 항상 동작
+  presetList.addEventListener("click", (e)=>{
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    const item = e.target.closest(".item");
+    if(!item) return;
+    const id = item.dataset.id;
+    const action = btn.dataset.action;
+    if(action === "apply") applyPreset(id);
+    if(action === "delete") deletePreset(id);
+  });
+
   function addPresetFromForm(name){
     const p = readPresetFromForm(name);
     if(!p) return;
@@ -314,62 +357,49 @@
     list.unshift(p);
     savePresets(list);
     renderPresets();
+    toast("저장 완료!");
   }
   function readPresetFromForm(name){
-    if(!refTime.value){ alert("기준 시각을 먼저 입력하세요."); return null; }
+    if(!refTime.value){ toast("기준 시각을 먼저 입력하세요."); return null; }
     const g = Number(gDur.value), y=Number(yDur.value||0), r=Number(rDur.value);
-    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
-    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
-    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    if(!isFinite(g)||g<=0){ toast("초록 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    if(!isFinite(y)||y<0){ toast("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
+    if(!isFinite(r)||r<=0){ toast("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
     return {
-      id: crypto.randomUUID(),
+      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
       name: (name||"") || undefined,
       simple: false,
       g, y, r,
-      refTime: refTime.value
+      refTime: normalizeRefTimeString(refTime.value)
     };
   }
   function deletePreset(id){
     const list = loadPresets().filter(x=>x.id!==id);
     savePresets(list);
     renderPresets();
+    toast("삭제됨");
   }
   function applyPreset(id){
-    const list = loadPresets();
-    const p = list.find(x=>x.id===id);
-    if(!p) return;
-    refTime.value = p.refTime || refTime.value;
-    gDur.value = p.g ?? "";
-    yDur.value = p.y ?? "0";
-    rDur.value = p.r ?? "";
-    saveForm();
-    start(); // 바로 시작
+    try{
+      const list = loadPresets();
+      const p = list.find(x=>x.id===id);
+      if(!p){ toast("항목을 찾을 수 없습니다."); return; }
+      // refTime을 안전 포맷으로 보정
+      const normalized = normalizeRefTimeString(p.refTime);
+      refTime.value = normalized || refTime.value;
+      gDur.value = p.g ?? "";
+      yDur.value = p.y ?? "0";
+      rDur.value = p.r ?? "";
+      saveForm();
+      start(); // 바로 시작
+      toast("적용 완료! 측정 시작");
+    }catch(err){
+      console.error(err);
+      toast("적용 중 오류가 발생했습니다.");
+    }
   }
 
-  // Core
-  function validateAndNormalize(){
-    if(!refTime.value){ alert("기준 시각을 입력하세요."); return false; }
-    const rt = new Date(refTime.value);
-    if(isNaN(rt.getTime())){ alert("기준 시각 형식이 올바르지 않습니다."); return false; }
-
-    const g = Number(gDur.value);
-    const y = Number(yDur.value||0);
-    const r = Number(rDur.value);
-    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
-    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return false; }
-    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
-
-    conf = {
-      refMillis: rt.getTime(),
-      refColor: refColor.value,
-      g, y, r,
-      cycle: g + y + r
-    };
-    const order = orderFromRef(conf.refColor, g, y, r);
-    cycleHint.textContent = `사이클 순서: ${order.map(o=>label(o)).join(" → ")} / 총 ${(g+y+r).toFixed(1)}초`;
-    return true;
-  }
-
+  // ---- Core ----
   function orderFromRef(ref, g, y, r){
     const base = (y>0) ? ["green","yellow","red"] : ["green","red"];
     const idx = base.indexOf(ref);
@@ -380,6 +410,23 @@
     if(color==="green") return conf.g;
     if(color==="yellow") return conf.y;
     return conf.r;
+  }
+  function validateAndNormalize(){
+    if(!refTime.value){ toast("기준 시각을 입력하세요."); return false; }
+    const rt = new Date(refTime.value);
+    if(isNaN(rt.getTime())){ toast("기준 시각 형식이 올바르지 않습니다."); return false; }
+
+    const g = Number(gDur.value);
+    const y = Number(yDur.value||0);
+    const r = Number(rDur.value);
+    if(!isFinite(g)||g<=0){ toast("초록 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+    if(!isFinite(y)||y<0){ toast("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return false; }
+    if(!isFinite(r)||r<=0){ toast("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+
+    conf = { refMillis: rt.getTime(), refColor: refColor.value, g, y, r, cycle: g+y+r };
+    const order = orderFromRef(conf.refColor, g, y, r);
+    cycleHint.textContent = `사이클 순서: ${order.map(o=>label(o)).join(" → ")} / 총 ${(g+y+r).toFixed(1)}초`;
+    return true;
   }
   function tick(){
     const now = new Date();
@@ -408,7 +455,6 @@
     currentBadge.className = `badge ${current==="green" ? "green" : current==="yellow" ? "yellow" : "red"}`;
     progress.style.width = `${(clamp01(segPos / (dur>0?dur:1))*100).toFixed(1)}%`;
   }
-
   function start(){
     if(!validateAndNormalize()) return;
     saveForm();
@@ -419,7 +465,7 @@
   }
   function stop(){ if(timer){ clearInterval(timer); timer=null; } }
 
-  // Event wiring
+  // ---- Event wiring ----
   btnNow.addEventListener("click", ()=>{
     const t = new Date();
     const local = new Date(t.getTime() - t.getTimezoneOffset()*60000);
@@ -431,14 +477,13 @@
   btnReset.addEventListener("click", ()=>{
     [gDur,yDur,rDur,presetName].forEach(el=> el.value="");
     refColor.value="green";
-    // refTime은 현시간으로
     const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
     refTime.value = local.toISOString().slice(0,19);
     saveForm(); stop(); result.hidden = true;
+    toast("초기화 완료");
   });
-  btnSavePreset.addEventListener("click", ()=> addPresetFromForm(presetName.value));
 
-  // Init
+  // ---- Init ----
   loadForm();
   if(!refTime.value){
     const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
