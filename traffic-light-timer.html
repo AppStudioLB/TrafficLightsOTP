@@ -6,52 +6,52 @@
 <title>신호등 현재 색상 체크</title>
 <style>
   :root { --bg:#0f1115; --panel:#161a22; --text:#e8ecf1; --muted:#aab3c5; --accent:#6ea8fe; --ok:#25d366; --warn:#ffd166; --bad:#ff5c5c; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; background: var(--bg); color: var(--text); }
-  header { padding: 24px 16px; text-align: center; }
-  h1 { margin: 0 0 6px; font-size: 22px; }
-  p.sub { margin: 0; color: var(--muted); font-size: 14px; }
-  main { max-width: 980px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
-  .card { background: var(--panel); border: 1px solid #222836; border-radius: 14px; padding: 16px; }
-  .grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
-  @media (min-width: 900px){ .grid.two{ grid-template-columns: 1fr 1fr; } .grid.three{ grid-template-columns: 1fr 1fr 1fr; } }
-  label { display: block; font-weight: 600; margin-bottom: 6px; }
-  .row { display: flex; gap: 8px; }
-  input, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #283043; background: #0f1320; color: var(--text); font-size: 14px; }
-  input[type="number"] { appearance: textfield; }
-  button { cursor: pointer; border: 1px solid #2b3550; background: #192033; color: var(--text); padding: 10px 14px; border-radius: 10px; font-weight: 600; }
-  button.primary { background: #23406c; border-color:#2c4f88; }
-  button.ghost { background: transparent; border-color:#2b3550; }
-  .result { margin-top: 14px; display: grid; gap: 10px; }
-  .badge { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 999px; font-weight:700; }
-  .green { background: rgba(37,211,102,.15); color: var(--ok); border: 1px solid rgba(37,211,102,.4); }
-  .yellow{ background: rgba(255,209,102,.15); color: var(--warn); border: 1px solid rgba(255,209,102,.45); }
-  .red   { background: rgba(255,92,92,.15);  color: var(--bad); border: 1px solid rgba(255,92,92,.45); }
-  .muted { color: var(--muted); }
-  .progress-wrap { background:#0d1220; border:1px solid #223052; border-radius: 10px; height: 14px; overflow: hidden; }
-  .progress { height: 100%; width:0%; background: linear-gradient(90deg, #4e7cff, #23d3a1); transition: width .15s linear; }
-  .row-inline { display:flex; align-items:end; gap:8px; }
-  .hint { font-size: 12px; color: var(--muted); }
-  footer { text-align:center; color: var(--muted); font-size: 12px; padding: 16px; }
+  *{ box-sizing:border-box }
+  body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif; background:var(--bg); color:var(--text) }
+  header{ padding:24px 16px; text-align:center }
+  h1{ margin:0 0 6px; font-size:22px }
+  p.sub{ margin:0; color:var(--muted); font-size:14px }
+  main{ max-width:980px; margin:0 auto; padding:16px; display:grid; gap:16px }
+  .card{ background:var(--panel); border:1px solid #222836; border-radius:14px; padding:16px }
+  .grid{ display:grid; gap:12px; grid-template-columns:1fr }
+  @media (min-width:900px){ .grid.two{ grid-template-columns:1fr 1fr } .grid.three{ grid-template-columns:1fr 1fr 1fr } }
+  label{ display:block; font-weight:600; margin-bottom:6px }
+  .row{ display:flex; gap:8px }
+  input,select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid #283043; background:#0f1320; color:var(--text); font-size:14px }
+  input[type=number]{ appearance:textfield }
+  button{ cursor:pointer; border:1px solid #2b3550; background:#192033; color:var(--text); padding:10px 14px; border-radius:10px; font-weight:600 }
+  button.primary{ background:#23406c; border-color:#2c4f88 }
+  button.ghost{ background:transparent; border-color:#2b3550 }
+  .result{ margin-top:14px; display:grid; gap:10px }
+  .badge{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:999px; font-weight:700 }
+  .green{ background:rgba(37,211,102,.15); color:var(--ok); border:1px solid rgba(37,211,102,.4) }
+  .yellow{ background:rgba(255,209,102,.15); color:var(--warn); border:1px solid rgba(255,209,102,.45) }
+  .red{ background:rgba(255,92,92,.15); color:var(--bad); border:1px solid rgba(255,92,92,.45) }
+  .muted{ color:var(--muted) }
+  .progress-wrap{ background:#0d1220; border:1px solid #223052; border-radius:10px; height:14px; overflow:hidden }
+  .progress{ height:100%; width:0%; background:linear-gradient(90deg,#4e7cff,#23d3a1); transition:width .15s linear }
+  .row-inline{ display:flex; align-items:end; gap:8px }
+  .hint{ font-size:12px; color:var(--muted) }
+  footer{ text-align:center; color:var(--muted); font-size:12px; padding:16px }
 
   /* 저장 목록 */
-  .savebar { display:flex; gap:8px; align-items:end; flex-wrap: wrap; }
-  .list { display:grid; gap:8px; }
-  .item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; border:1px solid #223052; border-radius:10px; background:#0f1320;}
-  .item .meta { display:flex; flex-direction:column; gap:2px; font-size:14px;}
-  .item .meta .title { font-weight:700; }
-  .item .meta .desc { color: var(--muted); font-size:12px; }
-  .pill { font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid #2b3550; background:#141a2a; color:#9fb0cf; }
-  .item .actions { display:flex; gap:6px; }
+  .savebar{ display:flex; gap:8px; align-items:end; flex-wrap:wrap }
+  .list{ display:grid; gap:8px }
+  .item{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; border:1px solid #223052; border-radius:10px; background:#0f1320 }
+  .item .meta{ display:flex; flex-direction:column; gap:2px; font-size:14px }
+  .item .meta .title{ font-weight:700 }
+  .item .meta .desc{ color:var(--muted); font-size:12px }
+  .pill{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid #2b3550; background:#141a2a; color:#9fb0cf }
+  .item .actions{ display:flex; gap:6px }
 
-  /* Toast */
-  .toast { position: fixed; left:50%; bottom:24px; transform: translateX(-50%); background:#1a2336; color:#e8ecf1; border:1px solid #2b3550; padding:10px 14px; border-radius:10px; font-size:13px; box-shadow:0 8px 20px rgba(0,0,0,.35); z-index:9999; }
+  /* 토스트 */
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#141a2a; border:1px solid #2b3550; color:#d9e1f2; padding:10px 14px; border-radius:10px; font-size:13px; box-shadow:0 8px 24px rgba(0,0,0,.35) }
 </style>
 </head>
 <body>
   <header>
     <h1>신호등 현재 색상 체크</h1>
-    <p class="sub">OTP 기준 시각과 <b>각 색상 지속 시간</b>을 입력하세요. (간단 모드 없음)</p>
+    <p class="sub">OTP 기준 시각과 <b>각 색상 지속 시간</b>만 입력하세요. (간단 모드 제거됨)</p>
   </header>
 
   <main>
@@ -102,28 +102,20 @@
         </div>
       </div>
 
-      <div class="row" style="margin-top:8px">
+      <div class="row" style="margin-top:8px; gap:8px">
         <button class="primary" id="btnStart">시작</button>
         <button id="btnStop">정지</button>
-        <button class="ghost" id="btnReset">초기화</button>
+        <button class="ghost" id="btnReset">입력 초기화</button>
+        <button class="ghost" id="btnHardReset" title="저장된 모든 프리셋/입력값 삭제">저장값 초기화</button>
       </div>
       <div class="hint">시작하면 현재 색/다음 전환까지 남은 시간/사이클 위치가 실시간 갱신됩니다.</div>
 
       <div class="result" id="result" hidden>
         <div id="currentBadge" class="badge">계산 중…</div>
         <div class="row" style="gap:12px">
-          <div>
-            <div class="muted">현재 시각</div>
-            <div id="nowText" style="font-weight:700"></div>
-          </div>
-          <div>
-            <div class="muted">다음 전환까지</div>
-            <div id="etaText" style="font-weight:700"></div>
-          </div>
-          <div>
-            <div class="muted">사이클 위치</div>
-            <div id="posText" style="font-weight:700"></div>
-          </div>
+          <div><div class="muted">현재 시각</div><div id="nowText" style="font-weight:700"></div></div>
+          <div><div class="muted">다음 전환까지</div><div id="etaText" style="font-weight:700"></div></div>
+          <div><div class="muted">사이클 위치</div><div id="posText" style="font-weight:700"></div></div>
         </div>
         <div class="progress-wrap" title="이번 색상 구간 진행률">
           <div class="progress" id="progress"></div>
@@ -141,16 +133,14 @@
         </div>
         <div class="row">
           <button id="btnSavePreset" class="primary">현재 값 저장</button>
-          <button id="btnClear" class="ghost" title="저장 목록을 초기 상태로 되돌립니다">저장 목록 초기화</button>
         </div>
       </div>
-      <div class="hint" style="margin-top:6px">저장 항목은 로컬에만 보관됩니다. 항목을 클릭하면 즉시 적용·시작합니다.</div>
+      <div class="hint" style="margin-top:6px">저장 항목은 로컬에만 보관됩니다. 항목의 <b>적용·시작</b>을 누르면 즉시 반영됩니다.</div>
       <div id="presetList" class="list" style="margin-top:10px"></div>
     </div>
-
-    <p class="hint">⏱ 계산은 클라이언트 시간 기준입니다. 실제 현장과 다를 수 있어요.</p>
   </main>
 
+  <div id="toast" class="toast" hidden></div>
   <footer>© Traffic Light Helper</footer>
 
 <script>
@@ -158,75 +148,43 @@
   const $ = (id)=>document.getElementById(id);
 
   // Elements
-  const refTime = $("refTime");
-  const refColor = $("refColor");
-  const gDur = $("gDur");
-  const yDur = $("yDur");
-  const rDur = $("rDur");
-  const btnNow = $("btnNow");
-  const btnStart = $("btnStart");
-  const btnStop = $("btnStop");
-  const btnReset = $("btnReset");
-  const result = $("result");
-  const currentBadge = $("currentBadge");
-  const nowText = $("nowText");
-  const etaText = $("etaText");
-  const posText = $("posText");
-  const progress = $("progress");
-  const cycleHint = $("cycleHint");
-  const presetName = $("presetName");
-  const btnSavePreset = $("btnSavePreset");
-  const presetList = $("presetList");
-  const btnClear = $("btnClear");
+  const refTime = $("refTime"), refColor = $("refColor");
+  const gDur = $("gDur"), yDur = $("yDur"), rDur = $("rDur");
+  const btnNow = $("btnNow"), btnStart = $("btnStart"), btnStop = $("btnStop"), btnReset = $("btnReset"), btnHardReset = $("btnHardReset");
+  const result = $("result"), currentBadge = $("currentBadge"), nowText = $("nowText"), etaText = $("etaText"), posText = $("posText"), progress = $("progress"), cycleHint = $("cycleHint");
+  const presetName = $("presetName"), btnSavePreset = $("btnSavePreset"), presetList = $("presetList");
+  const toast = $("toast");
 
   const LS_FORM = "trafficLightTimer.v3.form";
-  const LS_PRESETS = "trafficLightTimer.v2.presets"; // 기존 키 유지
+  const LS_PRESETS = "trafficLightTimer.v2.presets"; // 이전 키 유지(마이그레이션 포함)
 
-  let timer = null;
-  let conf = null;
+  let timer = null, conf = null;
 
-  // ---- Utilities ----
+  // Utils
   const pad=(n)=>String(n).padStart(2,"0");
-  const clamp01=(x)=>Math.max(0,Math.min(1,x));
-  const toLocalDatetimeLocalString=(d)=>{ const t=new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); };
-  function todayAt(h,m,s=0){ const now=new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0); }
-  function fmtDT(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`; }
-  const normId=(x)=> (x==null ? "" : String(x));  // ★ id 정규화 핵심
+  const clamp01=(x)=>Math.max(0, Math.min(1, x));
+  const fmtDT=(dt)=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+  const toLocalDatetimeLocalString=(d)=>{ const t = new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); };
+  const todayAt=(h,m,s=0)=>{ const now=new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0); };
+  const showToast=(msg)=>{ toast.textContent = msg; toast.hidden = false; clearTimeout(showToast._t); showToast._t = setTimeout(()=>toast.hidden=true, 1800); };
 
-  // Toast
-  function toast(msg, ms=1800){
-    const el=document.createElement("div");
-    el.className="toast"; el.textContent=msg;
-    document.body.appendChild(el);
-    setTimeout(()=>{ el.style.opacity="0"; el.style.transition="opacity .25s"; }, ms);
-    setTimeout(()=>{ el.remove(); }, ms+300);
+  // datetime-local 형식 보정(사파리 호환)
+  function normalizeDTLocal(str){
+    if(!str) return str;
+    // "YYYY-MM-DDTHH:MM" 형태면 초를 붙인다
+    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(str)) return str + ":00";
+    // 공백 구분형을 발견하면 T로 치환
+    if(/\d{2} \d{2}:\d{2}(:\d{2})?$/.test(str)) return str.replace(" ", "T").replace(/$/, (m)=> m.includes(":")? "" : ":00");
+    return str;
   }
 
-  // 날짜 문자열을 datetime-local에 안전한 형태로 정규화
-  function normalizeRefTimeString(s){
-    if(!s) return "";
-    s = String(s).trim();
-    if(/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)){ // HH:mm[:ss]
-      const [hh,mm,ss="00"]=s.split(":");
-      const d=todayAt(Number(hh), Number(mm), Number(ss));
-      return toLocalDatetimeLocalString(d);
-    }
-    if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(s)){ // 공백 → T
-      return s.replace(" ","T");
-    }
-    if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)){ // 초 보정
-      return s + ":00";
-    }
-    return s;
-  }
-
-  // ---- Persist form ----
+  // Persist form
   function loadForm(){
     try{
       const raw = localStorage.getItem(LS_FORM);
       if(!raw) return;
       const data = JSON.parse(raw);
-      if(data.refTime) refTime.value = normalizeRefTimeString(data.refTime);
+      if(data.refTime) refTime.value = normalizeDTLocal(data.refTime);
       if(data.refColor) refColor.value = data.refColor;
       if(data.gDur!=null) gDur.value = data.gDur;
       if(data.yDur!=null) yDur.value = data.yDur;
@@ -234,51 +192,30 @@
     }catch(e){}
   }
   function saveForm(){
-    const data = {
-      refTime: refTime.value || "",
-      refColor: refColor.value,
-      gDur: gDur.value,
-      yDur: yDur.value,
-      rDur: rDur.value
-    };
+    const data = { refTime: refTime.value || "", refColor: refColor.value, gDur: gDur.value, yDur: yDur.value, rDur: rDur.value };
     localStorage.setItem(LS_FORM, JSON.stringify(data));
   }
 
-  // ---- Presets (마이그레이션 포함) ----
+  // Presets
   function ensureSeedIfEmpty(list){
     if(list.length>0) return list;
+    // 기본 시드(요청 반영): G=30, Y=0, R=145
     return [{
-      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-seed"),
+      id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       name: "오후 4:10 / 2분25초",
-      simple: false,
-      g: 30, y: 0, r: 145,
+      simple: false, g: 30, y: 0, r: 145,
       refTime: toLocalDatetimeLocalString(todayAt(16,10,0))
     }];
   }
   function migratePresets(list){
     let changed = false;
     list.forEach(p=>{
-      // ★ id를 반드시 문자열로
-      if(p.id == null){ p.id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())+"-migr"); changed = true; }
-      else if(typeof p.id !== "string"){ p.id = String(p.id); changed = true; }
-
-      // 정책: 간단 모드 제거 + 초록 30 고정 + 노랑 0
-      if(p.simple){ p.simple=false; changed=true; }
+      if(p.simple){ p.simple = false; changed = true; }
       if(p.g !== 30){ p.g = 30; changed = true; }
       if(p.y == null || p.y !== 0){ p.y = 0; changed = true; }
-
-      // 빨강: 기존 r || tDur || 30
-      if(p.r == null){
-        if(p.tDur != null){ p.r = Number(p.tDur); changed = true; }
-        else { p.r = 30; changed = true; }
-      }
+      if(p.r == null){ p.r = p.tDur!=null ? Number(p.tDur) : 30; changed = true; }
       if(p.tDur != null){ delete p.tDur; changed = true; }
-
-      // refTime 정규화
-      if(typeof p.refTime === "string"){
-        const n = normalizeRefTimeString(p.refTime);
-        if(n !== p.refTime){ p.refTime = n; changed = true; }
-      }
+      if(p.refTime){ p.refTime = normalizeDTLocal(p.refTime); }
     });
     return { list, changed };
   }
@@ -290,12 +227,10 @@
     }catch(e){ list = []; }
     list = ensureSeedIfEmpty(list);
     const { list: migrated, changed } = migratePresets(list);
-    if(changed){ savePresets(migrated); }
+    if(changed) savePresets(migrated);
     return migrated;
   }
-  function savePresets(list){
-    localStorage.setItem(LS_PRESETS, JSON.stringify(list));
-  }
+  function savePresets(list){ localStorage.setItem(LS_PRESETS, JSON.stringify(list)); }
 
   function renderPresets(){
     const list = loadPresets();
@@ -308,37 +243,21 @@
       return;
     }
     list.forEach(p=>{
-      const div = document.createElement("div");
-      div.className = "item";
-      div.dataset.id = normId(p.id);  // ★ 문자열 보장
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      const title = document.createElement("div");
-      title.className = "title";
-      title.textContent = p.name || "(이름 없음)";
-
-      const desc = document.createElement("div");
-      desc.className = "desc";
+      const div = document.createElement("div"); div.className = "item"; div.dataset.id = p.id;
+      const meta = document.createElement("div"); meta.className = "meta";
+      const title = document.createElement("div"); title.className = "title"; title.textContent = p.name || "(이름 없음)";
+      const desc = document.createElement("div"); desc.className = "desc";
       const dt = new Date(p.refTime);
-      const timeLabel = isNaN(dt.getTime())
-        ? p.refTime
-        : `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+      const t = isNaN(dt.getTime()) ? p.refTime : `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
       const pills = [`G${p.g||0}s`,`Y${p.y||0}s`,`R${p.r||0}s`];
-      desc.innerHTML = `기준 ${timeLabel} <span class="pill">${pills.join("</span> <span class='pill'>")}</span>`;
-
+      desc.innerHTML = `기준 ${t} <span class="pill">${pills.join("</span> <span class='pill'>")}</span>`;
       meta.appendChild(title); meta.appendChild(desc);
 
-      const actions = document.createElement("div");
-      actions.className = "actions";
-      const applyBtn = document.createElement("button");
-      applyBtn.textContent = "적용·시작";
-      applyBtn.className = "primary";
-      applyBtn.dataset.action = "apply";
-      const delBtn = document.createElement("button");
-      delBtn.textContent = "삭제";
-      delBtn.className="ghost";
-      delBtn.dataset.action = "delete";
+      const actions = document.createElement("div"); actions.className = "actions";
+      const applyBtn = document.createElement("button"); applyBtn.textContent = "적용·시작"; applyBtn.className = "primary";
+      applyBtn.dataset.action = "apply"; applyBtn.dataset.id = p.id;
+      const delBtn = document.createElement("button"); delBtn.textContent = "삭제"; delBtn.className="ghost";
+      delBtn.dataset.action = "delete"; delBtn.dataset.id = p.id;
       actions.appendChild(applyBtn); actions.appendChild(delBtn);
 
       div.appendChild(meta); div.appendChild(actions);
@@ -346,16 +265,13 @@
     });
   }
 
-  // 이벤트 위임
+  // 이벤트 위임: 동적으로 생성된 버튼도 확실히 작동
   presetList.addEventListener("click", (e)=>{
-    const btn = e.target.closest("button");
+    const btn = e.target.closest("button[data-action]");
     if(!btn) return;
-    const item = e.target.closest(".item");
-    if(!item) return;
-    const id = item.dataset.id;
-    const action = btn.dataset.action;
+    const id = btn.dataset.id, action = btn.dataset.action;
     if(action === "apply") applyPreset(id);
-    if(action === "delete") deletePreset(id);
+    else if(action === "delete") deletePreset(id);
   });
 
   function addPresetFromForm(name){
@@ -365,85 +281,75 @@
     list.unshift(p);
     savePresets(list);
     renderPresets();
-    toast("저장 완료!");
+    showToast("저장 완료!");
   }
   function readPresetFromForm(name){
-    if(!refTime.value){ toast("기준 시각을 먼저 입력하세요."); return null; }
+    if(!refTime.value){ alert("기준 시각을 먼저 입력하세요."); return null; }
     const g = Number(gDur.value), y=Number(yDur.value||0), r=Number(rDur.value);
-    if(!isFinite(g)||g<=0){ toast("초록 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
-    if(!isFinite(y)||y<0){ toast("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
-    if(!isFinite(r)||r<=0){ toast("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
+    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
     return {
-      id: normId(crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+      id: crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()),
       name: (name||"") || undefined,
-      simple: false,
-      g, y, r,
-      refTime: normalizeRefTimeString(refTime.value)
+      simple: false, g, y, r,
+      refTime: normalizeDTLocal(refTime.value)
     };
   }
   function deletePreset(id){
-    const list = loadPresets().filter(x=>normId(x.id)!==normId(id)); // ★ 문자열 비교
+    const list = loadPresets().filter(x=>x.id!==id);
     savePresets(list);
     renderPresets();
-    toast("삭제됨");
+    showToast("삭제했어요.");
   }
   function applyPreset(id){
     try{
       const list = loadPresets();
-      const p = list.find(x=>normId(x.id)===normId(id)); // ★ 문자열 비교
-      if(!p){ toast("항목을 찾을 수 없습니다."); return; }
-      const normalized = normalizeRefTimeString(p.refTime);
-      refTime.value = normalized || refTime.value;
-      gDur.value = p.g ?? "";
+      const p = list.find(x=>x.id===id);
+      if(!p) return showToast("항목을 찾을 수 없어요.");
+      // 입력란에 반영
+      refTime.value = normalizeDTLocal(p.refTime || refTime.value);
+      gDur.value = p.g ?? gDur.value;
       yDur.value = p.y ?? "0";
-      rDur.value = p.r ?? "";
+      rDur.value = p.r ?? rDur.value;
       saveForm();
-      start();
-      toast("적용 완료! 측정 시작");
+      start(); // 바로 시작
+      showToast(`적용 완료: ${p.name || "프리셋"}`);
     }catch(err){
       console.error(err);
-      toast("적용 중 오류가 발생했습니다.");
+      alert("적용 중 오류가 발생했습니다: " + (err?.message||err));
     }
   }
 
-  // ---- Core ----
-  function orderFromRef(ref, g, y, r){
-    const base = (y>0) ? ["green","yellow","red"] : ["green","red"];
-    const idx = base.indexOf(ref);
-    return base.slice(idx).concat(base.slice(0, idx));
-  }
-  function label(c){ return c==="green"?"초록": c==="yellow"?"노랑":"빨강"; }
-  function segmentDuration(color){
-    if(color==="green") return conf.g;
-    if(color==="yellow") return conf.y;
-    return conf.r;
-  }
+  // Core
   function validateAndNormalize(){
-    if(!refTime.value){ toast("기준 시각을 입력하세요."); return false; }
-    const rt = new Date(refTime.value);
-    if(isNaN(rt.getTime())){ toast("기준 시각 형식이 올바르지 않습니다."); return false; }
+    if(!refTime.value){ alert("기준 시각을 입력하세요."); return false; }
+    const rtStr = normalizeDTLocal(refTime.value);
+    const rt = new Date(rtStr);
+    if(isNaN(rt.getTime())){ alert("기준 시각 형식이 올바르지 않습니다."); return false; }
 
-    const g = Number(gDur.value);
-    const y = Number(yDur.value||0);
-    const r = Number(rDur.value);
-    if(!isFinite(g)||g<=0){ toast("초록 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
-    if(!isFinite(y)||y<0){ toast("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return false; }
-    if(!isFinite(r)||r<=0){ toast("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+    const g = Number(gDur.value), y = Number(yDur.value||0), r = Number(rDur.value);
+    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return false; }
+    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
 
     conf = { refMillis: rt.getTime(), refColor: refColor.value, g, y, r, cycle: g+y+r };
     const order = orderFromRef(conf.refColor, g, y, r);
     cycleHint.textContent = `사이클 순서: ${order.map(o=>label(o)).join(" → ")} / 총 ${(g+y+r).toFixed(1)}초`;
     return true;
   }
+  const orderFromRef=(ref, g, y, r)=>{ const base = (y>0)?["green","yellow","red"]:["green","red"]; const idx = base.indexOf(ref); return base.slice(idx).concat(base.slice(0, idx)); };
+  const label=(c)=> c==="green"?"초록": c==="yellow"?"노랑":"빨강";
+  const segmentDuration=(color)=> color==="green"?conf.g : color==="yellow"?conf.y : conf.r;
+
   function tick(){
     const now = new Date();
-    const ms = now.getTime();
-    const dt = (ms - conf.refMillis)/1000;
+    const dt = (now.getTime() - conf.refMillis)/1000;
     const cycle = conf.cycle;
     let pos = ((dt % cycle) + cycle) % cycle;
 
     const order = orderFromRef(conf.refColor, conf.g, conf.y, conf.r);
-    let acc = 0, current = order[0], segStart = 0, segEnd = 0;
+    let acc=0, current=order[0], segStart=0, segEnd=0;
     for(const c of order){
       const dur = segmentDuration(c);
       segStart = acc; segEnd = acc + dur;
@@ -462,20 +368,20 @@
     currentBadge.className = `badge ${current==="green" ? "green" : current==="yellow" ? "yellow" : "red"}`;
     progress.style.width = `${(clamp01(segPos / (dur>0?dur:1))*100).toFixed(1)}%`;
   }
+
   function start(){
     if(!validateAndNormalize()) return;
     saveForm();
     if(timer) clearInterval(timer);
-    $("result").hidden = false;
+    result.hidden = false;
     tick();
     timer = setInterval(tick, 200);
   }
   function stop(){ if(timer){ clearInterval(timer); timer=null; } }
 
-  // ---- Event wiring ----
+  // Event wiring
   btnNow.addEventListener("click", ()=>{
-    const t = new Date();
-    const local = new Date(t.getTime() - t.getTimezoneOffset()*60000);
+    const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
     refTime.value = local.toISOString().slice(0,19);
   });
   [refTime, refColor, gDur, yDur, rDur].forEach(el=> el.addEventListener("change", saveForm));
@@ -486,17 +392,19 @@
     refColor.value="green";
     const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
     refTime.value = local.toISOString().slice(0,19);
-    saveForm(); stop(); result.hidden = true;
-    toast("초기화 완료");
+    saveForm(); stop(); result.hidden = true; showToast("입력을 초기화했어요.");
+  });
+  btnHardReset.addEventListener("click", ()=>{
+    if(!confirm("저장된 모든 프리셋과 입력값을 삭제할까요?")) return;
+    localStorage.removeItem(LS_FORM);
+    localStorage.removeItem(LS_PRESETS);
+    loadForm();
+    renderPresets();
+    showToast("저장값을 초기화했어요.");
   });
   btnSavePreset.addEventListener("click", ()=> addPresetFromForm(presetName.value));
-  btnClear.addEventListener("click", ()=>{
-    localStorage.removeItem(LS_PRESETS);
-    renderPresets();
-    toast("저장 목록을 초기화했습니다.");
-  });
 
-  // ---- Init ----
+  // Init
   loadForm();
   if(!refTime.value){
     const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
