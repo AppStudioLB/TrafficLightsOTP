@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>신호등 현재 색상 체크</title>
+<style>
+  :root { --bg:#0f1115; --panel:#161a22; --text:#e8ecf1; --muted:#aab3c5; --accent:#6ea8fe; --ok:#25d366; --warn:#ffd166; --bad:#ff5c5c; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 24px 16px; text-align: center; }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  p.sub { margin: 0; color: var(--muted); font-size: 14px; }
+  main { max-width: 980px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .card { background: var(--panel); border: 1px solid #222836; border-radius: 14px; padding: 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 900px){ .grid.two{ grid-template-columns: 1fr 1fr; } .grid.three{ grid-template-columns: 1fr 1fr 1fr; } }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .row { display: flex; gap: 8px; }
+  input, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #283043; background: #0f1320; color: var(--text); font-size: 14px; }
+  input[type="number"] { appearance: textfield; }
+  button { cursor: pointer; border: 1px solid #2b3550; background: #192033; color: var(--text); padding: 10px 14px; border-radius: 10px; font-weight: 600; }
+  button.primary { background: #23406c; border-color:#2c4f88; }
+  button.ghost { background: transparent; border-color:#2b3550; }
+  .result { margin-top: 14px; display: grid; gap: 10px; }
+  .badge { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 999px; font-weight:700; }
+  .green { background: rgba(37,211,102,.15); color: var(--ok); border: 1px solid rgba(37,211,102,.4); }
+  .yellow{ background: rgba(255,209,102,.15); color: var(--warn); border: 1px solid rgba(255,209,102,.45); }
+  .red   { background: rgba(255,92,92,.15);  color: var(--bad); border: 1px solid rgba(255,92,92,.45); }
+  .muted { color: var(--muted); }
+  .progress-wrap { background:#0d1220; border:1px solid #223052; border-radius: 10px; height: 14px; overflow: hidden; }
+  .progress { height: 100%; width:0%; background: linear-gradient(90deg, #4e7cff, #23d3a1); transition: width .15s linear; }
+  .row-inline { display:flex; align-items:end; gap:8px; }
+  .hint { font-size: 12px; color: var(--muted); }
+  footer { text-align:center; color: var(--muted); font-size: 12px; padding: 16px; }
+
+  /* 저장 목록 */
+  .savebar { display:flex; gap:8px; align-items:end; flex-wrap: wrap; }
+  .list { display:grid; gap:8px; }
+  .item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; border:1px solid #223052; border-radius:10px; background:#0f1320;}
+  .item .meta { display:flex; flex-direction:column; gap:2px; font-size:14px;}
+  .item .meta .title { font-weight:700; }
+  .item .meta .desc { color: var(--muted); font-size:12px; }
+  .pill { font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid #2b3550; background:#141a2a; color:#9fb0cf; }
+  .item .actions { display:flex; gap:6px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>신호등 현재 색상 체크</h1>
+    <p class="sub">OTP 기준 시각과 <b>각 색상 지속 시간</b>을 입력하세요. (간단 모드 제거됨)</p>
+  </header>
+
+  <main>
+    <!-- 입력 카드 -->
+    <div class="card">
+      <div class="grid two">
+        <div>
+          <label for="refTime">기준 시각</label>
+          <div class="row">
+            <input id="refTime" type="datetime-local" step="1" />
+            <button class="ghost" id="btnNow">지금</button>
+          </div>
+          <div class="hint">예) OTP 찍은 시각 또는 신호가 바뀐 걸 본 정확한 시각</div>
+        </div>
+
+        <div>
+          <label for="refColor">그 시각의 색상</label>
+          <select id="refColor">
+            <option value="green">초록</option>
+            <option value="yellow">노랑</option>
+            <option value="red">빨강</option>
+          </select>
+          <div class="hint">기준 시각에 실제 켜져 있던 색</div>
+        </div>
+      </div>
+
+      <div class="grid three" style="margin-top:8px">
+        <div>
+          <label>초록 지속 시간 (초)</label>
+          <div class="row-inline">
+            <input id="gDur" type="number" min="0" step="0.1" placeholder="예: 30" />
+            <span class="muted">초</span>
+          </div>
+        </div>
+        <div>
+          <label>노랑 지속 시간 (선택, 초)</label>
+          <div class="row-inline">
+            <input id="yDur" type="number" min="0" step="0.1" placeholder="예: 0 (없으면 0)" />
+            <span class="muted">초</span>
+          </div>
+        </div>
+        <div>
+          <label>빨강 지속 시간 (초)</label>
+          <div class="row-inline">
+            <input id="rDur" type="number" min="0" step="0.1" placeholder="예: 145" />
+            <span class="muted">초</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:8px">
+        <button class="primary" id="btnStart">시작</button>
+        <button id="btnStop">정지</button>
+        <button class="ghost" id="btnReset">초기화</button>
+      </div>
+      <div class="hint">시작하면 현재 색/다음 전환까지 남은 시간/사이클 위치가 실시간 갱신됩니다.</div>
+
+      <div class="result" id="result" hidden>
+        <div id="currentBadge" class="badge">계산 중…</div>
+        <div class="row" style="gap:12px">
+          <div>
+            <div class="muted">현재 시각</div>
+            <div id="nowText" style="font-weight:700"></div>
+          </div>
+          <div>
+            <div class="muted">다음 전환까지</div>
+            <div id="etaText" style="font-weight:700"></div>
+          </div>
+          <div>
+            <div class="muted">사이클 위치</div>
+            <div id="posText" style="font-weight:700"></div>
+          </div>
+        </div>
+        <div class="progress-wrap" title="이번 색상 구간 진행률">
+          <div class="progress" id="progress"></div>
+        </div>
+        <div class="hint" id="cycleHint"></div>
+      </div>
+    </div>
+
+    <!-- 저장 목록 카드 -->
+    <div class="card">
+      <div class="savebar">
+        <div style="flex:1; min-width:240px">
+          <label for="presetName">이름(선택)</label>
+          <input id="presetName" placeholder="예: 회사 앞 교차로" />
+        </div>
+        <div class="row">
+          <button id="btnSavePreset" class="primary">현재 값 저장</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:6px">저장 항목은 로컬에만 보관됩니다. 항목을 클릭하면 즉시 적용·시작합니다.</div>
+      <div id="presetList" class="list" style="margin-top:10px"></div>
+    </div>
+
+    <p class="hint">
+      ⏱ 계산은 클라이언트 시간 기준입니다. 실제 현장과 다를 수 있어요.
+    </p>
+  </main>
+
+  <footer>© Traffic Light Helper</footer>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+
+  // Elements
+  const refTime = $("refTime");
+  const refColor = $("refColor");
+  const gDur = $("gDur");
+  const yDur = $("yDur");
+  const rDur = $("rDur");
+  const btnNow = $("btnNow");
+  const btnStart = $("btnStart");
+  const btnStop = $("btnStop");
+  const btnReset = $("btnReset");
+  const result = $("result");
+  const currentBadge = $("currentBadge");
+  const nowText = $("nowText");
+  const etaText = $("etaText");
+  const posText = $("posText");
+  const progress = $("progress");
+  const cycleHint = $("cycleHint");
+  const presetName = $("presetName");
+  const btnSavePreset = $("btnSavePreset");
+  const presetList = $("presetList");
+
+  const LS_FORM = "trafficLightTimer.v3.form";
+  const LS_PRESETS = "trafficLightTimer.v2.presets"; // 기존 키 그대로 사용해 일괄 마이그레이션
+
+  let timer = null;
+  let conf = null;
+
+  // Utils
+  const pad=(n)=>String(n).padStart(2,"0");
+  function fmtDT(dt){ return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())} ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`; }
+  function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+  function toLocalDatetimeLocalString(d){ const t = new Date(d.getTime()-d.getTimezoneOffset()*60000); return t.toISOString().slice(0,19); }
+  function todayAt(h,m,s=0){ const now=new Date(); return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s, 0); }
+
+  // Persist form
+  function loadForm(){
+    try{
+      const raw = localStorage.getItem(LS_FORM);
+      if(!raw) return;
+      const data = JSON.parse(raw);
+      if(data.refTime) refTime.value = data.refTime;
+      if(data.refColor) refColor.value = data.refColor;
+      if(data.gDur!=null) gDur.value = data.gDur;
+      if(data.yDur!=null) yDur.value = data.yDur;
+      if(data.rDur!=null) rDur.value = data.rDur;
+    }catch(e){}
+  }
+  function saveForm(){
+    const data = {
+      refTime: refTime.value || "",
+      refColor: refColor.value,
+      gDur: gDur.value,
+      yDur: yDur.value,
+      rDur: rDur.value
+    };
+    localStorage.setItem(LS_FORM, JSON.stringify(data));
+  }
+
+  // Presets
+  function ensureSeedIfEmpty(list){
+    if(list.length>0) return list;
+    // 기존 ‘오후 4:10 / 2분25초’ 시드를 상세모드로 제공(초록30 / 노랑0 / 빨강145)
+    return [{
+      id: crypto.randomUUID(),
+      name: "오후 4:10 / 2분25초",
+      simple: false,
+      g: 30,
+      y: 0,
+      r: 145,
+      refTime: toLocalDatetimeLocalString(todayAt(16,10,0))
+    }];
+  }
+  function migratePresets(list){
+    let changed = false;
+    list.forEach(p=>{
+      // 간단모드 → 상세모드 변환 + 초록 30 고정
+      if(p.simple){ changed = true; p.simple = false; }
+      if(p.g !== 30){ p.g = 30; changed = true; }
+      if(p.y == null || p.y !== 0){ p.y = 0; changed = true; }
+      // 빨강은 우선순위: p.r || p.tDur || 30
+      if(p.r == null){
+        if(p.tDur != null){ p.r = Number(p.tDur); changed = true; }
+        else { p.r = 30; changed = true; }
+      }
+      // 잔여 필드 정리
+      if(p.tDur != null){ delete p.tDur; changed = true; }
+    });
+    return { list, changed };
+  }
+  function loadPresets(){
+    let list = [];
+    try{
+      const raw = localStorage.getItem(LS_PRESETS);
+      list = raw ? (JSON.parse(raw) || []) : [];
+    }catch(e){ list = []; }
+
+    // 비었으면 시드 주입
+    list = ensureSeedIfEmpty(list);
+
+    // 일괄 마이그레이션(요청사항 적용)
+    const { list: migrated, changed } = migratePresets(list);
+    if(changed){ savePresets(migrated); }
+    return migrated;
+  }
+  function savePresets(list){
+    localStorage.setItem(LS_PRESETS, JSON.stringify(list));
+  }
+  function renderPresets(){
+    const list = loadPresets();
+    presetList.innerHTML = "";
+    if(list.length===0){
+      const empty = document.createElement("div");
+      empty.className="hint";
+      empty.textContent="저장된 항목이 없습니다. 위의 ‘현재 값 저장’을 눌러 추가하세요.";
+      presetList.appendChild(empty);
+      return;
+    }
+    list.forEach(p=>{
+      const div = document.createElement("div");
+      div.className = "item";
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = p.name || "(이름 없음)";
+      const desc = document.createElement("div");
+      desc.className = "desc";
+
+      const dt = new Date(p.refTime);
+      const t = isNaN(dt.getTime()) ? p.refTime : `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+      const pills = [];
+      pills.push(`G${p.g||0}s`); pills.push(`Y${p.y||0}s`); pills.push(`R${p.r||0}s`);
+      desc.innerHTML = `기준 ${t} <span class="pill">${pills.join("</span> <span class='pill'>")}</span>`;
+
+      meta.appendChild(title); meta.appendChild(desc);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      const applyBtn = document.createElement("button");
+      applyBtn.textContent = "적용·시작";
+      applyBtn.className = "primary";
+      applyBtn.addEventListener("click", ()=>applyPreset(p.id));
+      const delBtn = document.createElement("button");
+      delBtn.textContent = "삭제";
+      delBtn.className="ghost";
+      delBtn.addEventListener("click", ()=>deletePreset(p.id));
+      actions.appendChild(applyBtn); actions.appendChild(delBtn);
+
+      div.appendChild(meta); div.appendChild(actions);
+      presetList.appendChild(div);
+    });
+  }
+  function addPresetFromForm(name){
+    const p = readPresetFromForm(name);
+    if(!p) return;
+    const list = loadPresets();
+    list.unshift(p);
+    savePresets(list);
+    renderPresets();
+  }
+  function readPresetFromForm(name){
+    if(!refTime.value){ alert("기준 시각을 먼저 입력하세요."); return null; }
+    const g = Number(gDur.value), y=Number(yDur.value||0), r=Number(rDur.value);
+    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return null; }
+    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return null; }
+    return {
+      id: crypto.randomUUID(),
+      name: (name||"") || undefined,
+      simple: false,
+      g, y, r,
+      refTime: refTime.value
+    };
+  }
+  function deletePreset(id){
+    const list = loadPresets().filter(x=>x.id!==id);
+    savePresets(list);
+    renderPresets();
+  }
+  function applyPreset(id){
+    const list = loadPresets();
+    const p = list.find(x=>x.id===id);
+    if(!p) return;
+    refTime.value = p.refTime || refTime.value;
+    gDur.value = p.g ?? "";
+    yDur.value = p.y ?? "0";
+    rDur.value = p.r ?? "";
+    saveForm();
+    start(); // 바로 시작
+  }
+
+  // Core
+  function validateAndNormalize(){
+    if(!refTime.value){ alert("기준 시각을 입력하세요."); return false; }
+    const rt = new Date(refTime.value);
+    if(isNaN(rt.getTime())){ alert("기준 시각 형식이 올바르지 않습니다."); return false; }
+
+    const g = Number(gDur.value);
+    const y = Number(yDur.value||0);
+    const r = Number(rDur.value);
+    if(!isFinite(g)||g<=0){ alert("초록 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+    if(!isFinite(y)||y<0){ alert("노랑 지속 시간을 올바르게 입력하세요 (≥0)."); return false; }
+    if(!isFinite(r)||r<=0){ alert("빨강 지속 시간을 올바르게 입력하세요 (>0)."); return false; }
+
+    conf = {
+      refMillis: rt.getTime(),
+      refColor: refColor.value,
+      g, y, r,
+      cycle: g + y + r
+    };
+    const order = orderFromRef(conf.refColor, g, y, r);
+    cycleHint.textContent = `사이클 순서: ${order.map(o=>label(o)).join(" → ")} / 총 ${(g+y+r).toFixed(1)}초`;
+    return true;
+  }
+
+  function orderFromRef(ref, g, y, r){
+    const base = (y>0) ? ["green","yellow","red"] : ["green","red"];
+    const idx = base.indexOf(ref);
+    return base.slice(idx).concat(base.slice(0, idx));
+  }
+  function label(c){ return c==="green"?"초록": c==="yellow"?"노랑":"빨강"; }
+  function segmentDuration(color){
+    if(color==="green") return conf.g;
+    if(color==="yellow") return conf.y;
+    return conf.r;
+  }
+  function tick(){
+    const now = new Date();
+    const ms = now.getTime();
+    const dt = (ms - conf.refMillis)/1000;
+    const cycle = conf.cycle;
+    let pos = ((dt % cycle) + cycle) % cycle;
+
+    const order = orderFromRef(conf.refColor, conf.g, conf.y, conf.r);
+    let acc = 0, current = order[0], segStart = 0, segEnd = 0;
+    for(const c of order){
+      const dur = segmentDuration(c);
+      segStart = acc; segEnd = acc + dur;
+      if(pos < segEnd || dur===0){ current = c; break; }
+      acc += dur;
+    }
+    const dur = segmentDuration(current);
+    const segPos = pos - segStart;
+    const remain = Math.max(0, dur - segPos);
+
+    nowText.textContent = fmtDT(now);
+    etaText.textContent = `${remain.toFixed(1)}초`;
+    posText.textContent = `${pos.toFixed(1)} / ${cycle.toFixed(1)}초`;
+
+    currentBadge.textContent = `현재: ${label(current)}`;
+    currentBadge.className = `badge ${current==="green" ? "green" : current==="yellow" ? "yellow" : "red"}`;
+    progress.style.width = `${(clamp01(segPos / (dur>0?dur:1))*100).toFixed(1)}%`;
+  }
+
+  function start(){
+    if(!validateAndNormalize()) return;
+    saveForm();
+    if(timer) clearInterval(timer);
+    $("result").hidden = false;
+    tick();
+    timer = setInterval(tick, 200);
+  }
+  function stop(){ if(timer){ clearInterval(timer); timer=null; } }
+
+  // Event wiring
+  btnNow.addEventListener("click", ()=>{
+    const t = new Date();
+    const local = new Date(t.getTime() - t.getTimezoneOffset()*60000);
+    refTime.value = local.toISOString().slice(0,19);
+  });
+  [refTime, refColor, gDur, yDur, rDur].forEach(el=> el.addEventListener("change", saveForm));
+  btnStart.addEventListener("click", start);
+  btnStop.addEventListener("click", stop);
+  btnReset.addEventListener("click", ()=>{
+    [gDur,yDur,rDur,presetName].forEach(el=> el.value="");
+    refColor.value="green";
+    // refTime은 현시간으로
+    const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
+    refTime.value = local.toISOString().slice(0,19);
+    saveForm(); stop(); result.hidden = true;
+  });
+  btnSavePreset.addEventListener("click", ()=> addPresetFromForm(presetName.value));
+
+  // Init
+  loadForm();
+  if(!refTime.value){
+    const t = new Date(); const local = new Date(t.getTime()-t.getTimezoneOffset()*60000);
+    refTime.value = local.toISOString().slice(0,19);
+  }
+  renderPresets();
+})();
+</script>
+</body>
+</html>
